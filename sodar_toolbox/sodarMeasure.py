@@ -5,7 +5,7 @@ def getMean(aList):
 	return float(sum(aList)/len(aList))
 
 class sodar:
-	def __init__(self, trigPin, echoPin):
+	def __init__(self, trigPin=16, echoPin=18):
 		self.trigPin = trigPin
 		self.echoPin = echoPin
 		gpio.setmode(gpio.BOARD)

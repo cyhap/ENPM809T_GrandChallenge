@@ -33,7 +33,6 @@ class teleop:
 		time.sleep(time_sec)
 		#Set Low and Cleanup
 		self.gameover()
-		gpio.cleanup()
 		
 	def reverse(self, time_sec):
 		self.init()
@@ -47,7 +46,6 @@ class teleop:
 		time.sleep(time_sec)
 		#Set Low and Cleanup
 		self.gameover()
-		gpio.cleanup()
 
 	def pivotLeft(self, time_sec):
 		self.init()
@@ -61,7 +59,6 @@ class teleop:
 		time.sleep(time_sec)
 		#Set Low and Cleanup
 		self.gameover()
-		gpio.cleanup()
 		
 	def pivotRight(self, time_sec):
 		self.init()
@@ -75,13 +72,12 @@ class teleop:
 		time.sleep(time_sec)
 		#Set Low and Cleanup
 		self.gameover()
-		gpio.cleanup()
 		
 	def key_input(self, event):
 		self.init()
 		print("Key: ", event)
 		event = event.lower()
-		time_sec = 1
+		time_sec = 0.25
 		if event == "w":
 			self.forward(time_sec)
 		elif event == "a":
@@ -92,6 +88,11 @@ class teleop:
 			self.reverse(time_sec)
 		else:
 			print( "Invalid Key Pressed")
+			
+	def __del__(self):
+		# Clearnup gpio pins
+		gpio.cleanup()
+		print("Pins properly reset. Teleop Controls Destroyed")
 			
 		
 if __name__ == "__main__":
