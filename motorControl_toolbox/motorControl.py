@@ -5,6 +5,7 @@ import math
 import sys
 sys.path.insert(0, '/home/pi/enpm809T/email_toolbox/')
 import email01
+import pickle
 
 #Uses the Encoder Ticks for a Duration instead of Time
 # TODO Add boolean to use encoder ticks instead of time!
@@ -20,6 +21,9 @@ class motorControl:
 		self.distBetweenWheels_m = 0.24
 		self.Mode = 1 #TODO Add Enumerations 0 is use time 1 is use Encoder Ticks
 		self.PathCommands = []
+		timeNow = time.strftime("%Y%m%d-%H%M%S")
+		out_file = "selectedMoves_" + timeNow + ".pkl"
+		self.fptr = open(out_file, "wb")
 		
 	def init(self):
 		gpio.setmode(gpio.BOARD)
@@ -41,30 +45,38 @@ class motorControl:
 	def forward(self, control, dutyCyclePcnt):
 		pins = [self.IN_4, self.IN_1] # Right Pin the Left Pin
 		self.drive(pins, control, dutyCyclePcnt)
+		self.PathCommands.append(("FWD", control))
 		
 	def reverse(self, control, dutyCyclePcnt):
 		pins = [self.IN_3, self.IN_2]
 		self.drive(pins, control, dutyCyclePcnt)
+		self.PathCommands.append(("RVS", control))
 		
 	def pivotLeft(self, control, dutyCyclePcnt):
 		pins = [self.IN_4, self.IN_2]
 		self.drive(pins, control, dutyCyclePcnt)
+		self.PathCommands.append(("P_Lft", control))
 		
 	def pivotRight(self, control, dutyCyclePcnt):
 		pins = [self.IN_3, self.IN_1]
 		self.drive(pins, control, dutyCyclePcnt)
+		self.PathCommands.append(("P_Rgt", control))
 		
 	def pivotLeftAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
 		circumference_m = self.distBetweenWheels_m*math.pi
 		dist_m = circumference_m*ang_deg/360
 		self.pivotLeft(dist_m, dutyCyclePcnt)
+		self.PathCommands.append(("P_Lft_Ang", ang_deg))
+
 		
 	def pivotRightAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
 		circumference_m = self.distBetweenWheels_m*math.pi
 		dist_m = circumference_m*ang_deg/360
 		self.pivotRight(dist_m, dutyCyclePcnt)
+		self.PathCommands.append(("P_Rgt_Ang", ang_deg))
+
 	
 	def drive(self, pins, control, dutyCyclePcnt):
 		if self.Mode == 0:
@@ -214,6 +226,9 @@ class motorControl:
 	def __del__(self):
 		# Clearnup gpio pins
 		gpio.cleanup()
+		#pickle.dump(self.PathCommands, self.fptr)
+		self.fptr.close()
+		
 		print("Pins properly reset. Teleop Controls Destroyed")		
 	
 	def key_input(self, event):

@@ -112,7 +112,6 @@ def main():
 			cv2.imshow("Thresh", thresh)
 
 		if cv2.waitKey(1) & 0xFF is ord('q'):
-			print("Min Vals:", v1_min, v2_min, v3_min,"Max Vals: " v1_max,v2_max, v3_max )
 			break
 
 

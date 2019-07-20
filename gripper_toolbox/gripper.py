@@ -2,16 +2,15 @@ import RPi.GPIO as gpio
 import time
 
 class gripper:
-	# These Positions are Duty Cycle Percentages
-	gripperMaxPos = 10
-	gripperMinPos = 6 # FIXME Update with Actual Bounds
 	def __init__(self, OUTPUT_PIN=36):
 		self.OUTPUT_PIN = OUTPUT_PIN
 		self.changedVal = False
-	def init(self):
 		gpio.setmode(gpio.BOARD)
 		gpio.setup(self.OUTPUT_PIN, gpio.OUT)
 		self.pwm = gpio.PWM(self.OUTPUT_PIN,  50) #50 Hz
+		# These Positions are Duty Cycle Percentages
+		self.gripperMaxPos = 10
+		self.gripperMinPos = 6 
 
 	def checkBounds(self, aPos):
 		if (aPos > self.gripperMaxPos or  aPos < self.gripperMinPos):
@@ -30,6 +29,12 @@ class gripper:
 		else:
 			aPos = self.checkBounds(aPos)
 			self.pwm.ChangeDutyCycle(aPos)
+			
+	def openGrip(self):
+		self.move2Pos(self.gripperMaxPos)
+		
+	def closeGrip(self):
+		self.move2Pos(self.gripperMinPos)
 
 	def __del__(self):
 		self.pwm.stop()
