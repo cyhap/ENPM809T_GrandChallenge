@@ -4,7 +4,7 @@ import time
 class gripper:
 	# These Positions are Duty Cycle Percentages
 	gripperMaxPos = 10
-	gripperMinPos = 3 # FIXME Update with Actual Bounds
+	gripperMinPos = 6 # FIXME Update with Actual Bounds
 	def __init__(self, OUTPUT_PIN=36):
 		self.OUTPUT_PIN = OUTPUT_PIN
 		self.changedVal = False
