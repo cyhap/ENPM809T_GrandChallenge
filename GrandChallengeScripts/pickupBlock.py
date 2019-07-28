@@ -31,7 +31,6 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 		print("Distance_m: ", distance_m)
 		print("Max Distance Allowed: ", maxDistAllowed_m)
 		#input("Continue?")
-		
 	
 	# Open the Gripper
 	grip.openGrip()
@@ -42,6 +41,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	grip.closeGrip()
 	
 	email01.main(picTaker)
+	return success
 	
 	# ENSURE THAT THE BLOCK IS IN OUT GRASP?!
 

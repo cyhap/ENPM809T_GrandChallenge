@@ -10,7 +10,7 @@ import pickle
 #Uses the Encoder Ticks for a Duration instead of Time
 # TODO Add boolean to use encoder ticks instead of time!
 class motorControl:
-	def __init__(self, IN_1=31, IN_2=33, IN_3=35, IN_4=37, frontLeftEnc=7, backRightEnc=12):
+	def __init__(self, IN_1=31, IN_2=33, IN_3=35, IN_4=37, frontLeftEnc=7, backRightEnc=12, initPosOrient = (0,0,0)):
 		self.IN_1 = IN_1 #Left Wheels
 		self.IN_2 = IN_2 #Left Wheels
 		self.IN_3 = IN_3 #Right Wheels
@@ -24,6 +24,8 @@ class motorControl:
 		self.countsBR = []
 		self.countsFL = []
 		self.timeUpdates = []
+		self.pos = [initPosOrient[0], initPosOrient[1]]
+		self.orient = initPosOrient[2]
 		timeNow = time.strftime("%Y%m%d-%H%M%S")
 		out_file = "selectedMoves_" + timeNow + ".pkl"
 		self.fptr = open(out_file, "wb")
@@ -50,11 +52,15 @@ class motorControl:
 		pins = [self.IN_4, self.IN_1] # Right Pin the Left Pin
 		self.drive(pins, control, dutyCyclePcnt)
 		self.PathCommands.append(("FWD", control))
+		self.pos[0] += math.sin(math.radians(-self.orient))*control
+		self.pos[1] += math.cos(math.radians(-self.orient))*control
 		
 	def reverse(self, control, dutyCyclePcnt):
 		pins = [self.IN_3, self.IN_2]
 		self.drive(pins, control, dutyCyclePcnt)
 		self.PathCommands.append(("RVS", control))
+		self.pos[0] -= math.sin(math.radians(-self.orient))*control
+		self.pos[1] -= math.cos(math.radians(-self.orient))*control
 		
 	def pivotLeft(self, control, dutyCyclePcnt):
 		pins = [self.IN_4, self.IN_2]
@@ -72,7 +78,7 @@ class motorControl:
 		dist_m = circumference_m*ang_deg/360
 		self.pivotLeft(dist_m, dutyCyclePcnt)
 		self.PathCommands.append(("P_Lft_Ang", ang_deg))
-
+		self.orient -= ang_deg
 		
 	def pivotRightAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
@@ -80,7 +86,7 @@ class motorControl:
 		dist_m = circumference_m*ang_deg/360
 		self.pivotRight(dist_m, dutyCyclePcnt)
 		self.PathCommands.append(("P_Rgt_Ang", ang_deg))
-
+		self.orient += ang_deg
 	
 	def drive(self, pins, control, dutyCyclePcnt):
 		if self.Mode == 0:
