@@ -32,9 +32,11 @@ class gripper:
 			
 	def openGrip(self):
 		self.move2Pos(self.gripperMaxPos)
+		time.sleep(2)
 		
 	def closeGrip(self):
 		self.move2Pos(self.gripperMinPos)
+		time.sleep(2)
 
 	def __del__(self):
 		self.pwm.stop()

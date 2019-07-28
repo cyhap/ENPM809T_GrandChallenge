@@ -21,9 +21,13 @@ class motorControl:
 		self.distBetweenWheels_m = 0.24
 		self.Mode = 1 #TODO Add Enumerations 0 is use time 1 is use Encoder Ticks
 		self.PathCommands = []
+		self.countsBR = []
+		self.countsFL = []
+		self.timeUpdates = []
 		timeNow = time.strftime("%Y%m%d-%H%M%S")
 		out_file = "selectedMoves_" + timeNow + ".pkl"
 		self.fptr = open(out_file, "wb")
+		self.init()
 		
 	def init(self):
 		gpio.setmode(gpio.BOARD)
@@ -85,10 +89,14 @@ class motorControl:
 			self.moveMotorsDist(pins, control, dutyCyclePcnt)
 		
 	def moveMotorsDist(self, pins, distance_m, dutyCyclePcnt):
+		#Added these to keep track of when different moves start
+		self.countsBR.append(-1)
+		self.countsFL.append(-1)
+		self.timeUpdates.append(-1)
 		
 		numWheelRevs = distance_m/(self.wheelDiameter_m*np.pi)
 		numTicks = int(np.ceil(numWheelRevs*960))
-		self.init()
+		#self.init()
 		
 		counterFL = np.uint64(1)
 		counterBR = np.uint64(1)
@@ -101,7 +109,7 @@ class motorControl:
 		dc_R = dutyCyclePcnt
 		dc_L = dutyCyclePcnt
 		
-		saveStates = True
+		saveStates = False
 		if saveStates:
 			statesFL = np.zeros((1000000, 1))
 			statesBR = np.zeros((1000000, 1))
@@ -140,16 +148,22 @@ class motorControl:
 			if (timeInterval > minCheckTime):
 				dBR_dt = (counterBR - lastUpdateBR) / timeInterval
 				dFL_dt = (counterFL - lastUpdateFL) / timeInterval
+				"""
 				print("counterBR", counterBR)
 				print("counterFL", counterFL)
 				print("lastUpdateBR", lastUpdateBR)
 				print("lastUpdateFL", lastUpdateFL)
 				print("Time interval", timeInterval)
+				"""
+				self.countsBR.append(counterBR)
+				self.countsFL.append(counterFL)
+				self.timeUpdates.append(timeInterval)
+
 				lastUpdateBR = counterBR
 				lastUpdateFL = counterFL
 				lastTime = time.time()
 				diffSpds = dFL_dt - dBR_dt
-				print("DiffSpeeds: ", diffSpds)
+				#print("DiffSpeeds: ", diffSpds)
 				diffCnts = counterFL-counterBR
 				#Positive means Left has gone faster than right
 				#Negaitve Means Right has gone faster than left
@@ -176,8 +190,8 @@ class motorControl:
 					
 				dc_R = min(dc_R + gainR, 100)
 				dc_L = min(dc_L + gainL, 100)
-				print("DC_L: ", dc_L)
-				print("DC_R: ", dc_R)
+				#print("DC_L: ", dc_L)
+				#print("DC_R: ", dc_R)
 				
 			"""
 			#print("Reduced rate: ", reducedRate)
@@ -226,7 +240,9 @@ class motorControl:
 	def __del__(self):
 		# Clearnup gpio pins
 		gpio.cleanup()
-		#pickle.dump(self.PathCommands, self.fptr)
+		writeOut = (self.PathCommands, self.countsBR, self.countsFL, self.timeUpdates)
+		#TODO Figure this out
+		pickle.dump(self.PathCommands, self.fptr)
 		self.fptr.close()
 		
 		print("Pins properly reset. Teleop Controls Destroyed")		

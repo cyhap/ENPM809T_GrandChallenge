@@ -8,12 +8,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
-def main():
+def main(aPicTaker):
 	#Define time stamp & record an image
 	pic_time = datetime.now().strftime('%Y%m%d%H%M%S')
-	command = 'raspistill -w 1280 -h 720 -vf -hf -o '+pic_time+'.jpg'
-	os.system(command)
-
+	#command = 'raspistill -w 1280 -h 720 -vf -hf -o '+pic_time+'.jpg'
+	#os.system(command)
+	aPicTaker.saveIm(pic_time+'.jpg')
 	#Email information
 	smtpUser = "cyhap.rpi@gmail.com"
 	smtpPass = "raspberryENPM809T"
