@@ -35,8 +35,8 @@ class camera:
 		#Plot a dot at object center
 		#cv2.circle(orig_image, COI, 10, (255, 0, 0), -1)
 		
-		cv2.imshow("Results", masked)
-		key  = cv2.waitKey(1) & 0xFF 
+		#cv2.imshow("Results", masked)
+		#key  = cv2.waitKey(1) & 0xFF 
 		
 		
 		newIm, contours, h = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)

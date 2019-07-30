@@ -40,7 +40,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	# Close the Gripper.
 	grip.closeGrip()
 	
-	email01.main(picTaker)
+	#email01.main(picTaker)
 	return success
 	
 	# ENSURE THAT THE BLOCK IS IN OUT GRASP?!
@@ -85,7 +85,7 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 			#Compute the angle needed to turn given the distance from center
 			pixelDist = abs(COI[0] - CenterIm[0])
 			# Rotate in Small increments until the block is centered in the image
-			bufX = 5# Allow X Pixels of error
+			bufX = 6# Allow X Pixels of error
 			# Block is to the Left of Center Screen
 			# Use different turning amounts so it doesn't get stuck going back
 			# and forth

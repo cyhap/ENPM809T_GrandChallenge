@@ -52,15 +52,19 @@ class motorControl:
 		pins = [self.IN_4, self.IN_1] # Right Pin the Left Pin
 		self.drive(pins, control, dutyCyclePcnt)
 		self.PathCommands.append(("FWD", control))
-		self.pos[0] += math.sin(math.radians(-self.orient))*control
-		self.pos[1] += math.cos(math.radians(-self.orient))*control
+		self.pos[0] += math.cos(math.radians(self.orient))*control
+		self.pos[1] += math.sin(math.radians(self.orient))*control
+		print("Current X Pos: ", self.pos[0])
+		print("Current Y Pos: ", self.pos[1])
 		
 	def reverse(self, control, dutyCyclePcnt):
 		pins = [self.IN_3, self.IN_2]
 		self.drive(pins, control, dutyCyclePcnt)
 		self.PathCommands.append(("RVS", control))
-		self.pos[0] -= math.sin(math.radians(-self.orient))*control
-		self.pos[1] -= math.cos(math.radians(-self.orient))*control
+		self.pos[0] -= math.cos(math.radians(self.orient))*control
+		self.pos[1] -= math.sin(math.radians(self.orient))*control
+		print("Current X Pos: ", self.pos[0])
+		print("Current Y Pos: ", self.pos[1])
 		
 	def pivotLeft(self, control, dutyCyclePcnt):
 		pins = [self.IN_4, self.IN_2]
@@ -78,7 +82,8 @@ class motorControl:
 		dist_m = circumference_m*ang_deg/360
 		self.pivotLeft(dist_m, dutyCyclePcnt)
 		self.PathCommands.append(("P_Lft_Ang", ang_deg))
-		self.orient -= ang_deg
+		self.orient += ang_deg
+		print("Current Orientation: ", self.orient)
 		
 	def pivotRightAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
@@ -86,7 +91,8 @@ class motorControl:
 		dist_m = circumference_m*ang_deg/360
 		self.pivotRight(dist_m, dutyCyclePcnt)
 		self.PathCommands.append(("P_Rgt_Ang", ang_deg))
-		self.orient += ang_deg
+		self.orient -= ang_deg
+		print("Current Orientation: ", self.orient)
 	
 	def drive(self, pins, control, dutyCyclePcnt):
 		if self.Mode == 0:
@@ -213,14 +219,14 @@ class motorControl:
 			
 			if (max(counterBR, counterFL) >= numTicks):
 				breakIdx = i
-				print("Break Idx: ", breakIdx)
+				#print("Break Idx: ", breakIdx)
 				break
 				
 		pwm_R.stop()
 		pwm_L.stop()
 		self.gameover()
-		print("Distance Covered: ", distance_m, "(m)")
-		print("Corresponding Encoder Ticks: ", numTicks)
+		#print("Distance Covered: ", distance_m, "(m)")
+		#print("Corresponding Encoder Ticks: ", numTicks)
 		if saveStates:
 			statesBR = statesBR[:breakIdx]
 			statesFL = statesFL[:breakIdx]
