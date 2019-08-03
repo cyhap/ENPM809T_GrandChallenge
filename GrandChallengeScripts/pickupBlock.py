@@ -10,17 +10,18 @@ import time
 
 def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts = 25):
 	
+	grip.openGrip()
 	# Max Allowable Distance
 	maxDistAllowed_m = 8*0.0254 # 8  Inches
 	# Start the read distance outside the max distance allowed
 	distance_m  = maxDistAllowed_m+1
 	while (distance_m > maxDistAllowed_m):
-		success = centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors)
+		success, cntrPt, color = centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors)
 		# Stop now if we were not able to find anything or center within
 		# Max attempts
 		if not success:
 				print("Unsuccessful Centering on Block")
-				return success
+				return (success, color)
 		# Measure the Distance to the Block
 		# Get the Distance as an avg over 10 measurements
 		distance_m = sodar.distance(10) / 100
@@ -30,7 +31,13 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 			motors.forward(maxDistAllowed_m, 40)
 		print("Distance_m: ", distance_m)
 		print("Max Distance Allowed: ", maxDistAllowed_m)
+		# If Y is low enough then the block is close enough.
+		print("Center Y: ", cntrPt[1])
 		#input("Continue?")
+		if cntrPt[1] > 375:
+			distance_m = 4*0.0254
+			break
+		
 	
 	# Open the Gripper
 	grip.openGrip()
@@ -40,8 +47,10 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	# Close the Gripper.
 	grip.closeGrip()
 	
-	#email01.main(picTaker)
-	return success
+	emailStr = "Coordinates are: " + str(motors.pos)
+	email01.main(picTaker, emailStr)
+	#print("Color was: ", color)
+	return (success, color)
 	
 	# ENSURE THAT THE BLOCK IS IN OUT GRASP?!
 
@@ -49,6 +58,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	
 def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 	# Image is (640, 480) so Center is (320, 240)
+	#input(maskBoundsRGB)
 	CenterIm = (320, 240)
 	success = False
 	#BEGIN LOOP
@@ -58,9 +68,15 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 		largestY = 0
 		COI = []
 		orig_im = picTaker.getIm()
+		#Mask Out Top Portion of the Image
+		test_im = orig_im.copy()
+		test_im[0:115][:][:] = 0
+		orig_im = test_im
+		
 		#Crop Image to remove the gripper
 		#orig_im = orig_im[0:240, 0:640]
-		for maskBounds in maskBoundsRGB:
+		colorUsed = 'z'
+		for color, maskBounds in maskBoundsRGB.items():
 			cntrs, areas = picTaker.centroidAndArea(maskBounds, orig_im)
 			# Only Care about the largest (closest block)
 			if len(areas) > 1:
@@ -78,6 +94,7 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 						if largestY < cntr[1]:
 							COI = cntr
 							largestY = cntr[1]
+							colorUsed = color
 					#input("Continue?")
 			#input("Continue? ")
 		if COI:
@@ -85,7 +102,7 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 			#Compute the angle needed to turn given the distance from center
 			pixelDist = abs(COI[0] - CenterIm[0])
 			# Rotate in Small increments until the block is centered in the image
-			bufX = 6# Allow X Pixels of error
+			bufX = 4# Allow X Pixels of error
 			# Block is to the Left of Center Screen
 			# Use different turning amounts so it doesn't get stuck going back
 			# and forth
@@ -98,8 +115,12 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 			else:
 				success = True
 				break
-	return success
+		print("Block Color is: ", colorUsed)
 	print("Center on Block: Success:" , success)
+	
+	
+	return success, COI, colorUsed
+	
 	
 if __name__ == "__main__":
 	sys.path.insert(0, '/home/pi/enpm809T/gripper_toolbox/')

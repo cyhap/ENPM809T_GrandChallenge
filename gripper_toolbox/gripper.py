@@ -29,6 +29,13 @@ class gripper:
 		else:
 			aPos = self.checkBounds(aPos)
 			self.pwm.ChangeDutyCycle(aPos)
+		
+		"""
+		aPos = self.checkBounds(aPos)
+		self.pwm.start(aPos)
+		time.sleep(2)
+		self.pwm.stop()
+		"""
 			
 	def openGrip(self):
 		self.move2Pos(self.gripperMaxPos)

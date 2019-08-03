@@ -6,6 +6,7 @@ import sys
 sys.path.insert(0, '/home/pi/enpm809T/email_toolbox/')
 import email01
 import pickle
+import faulthandler; faulthandler.enable()
 
 #Uses the Encoder Ticks for a Duration instead of Time
 # TODO Add boolean to use encoder ticks instead of time!
@@ -219,14 +220,16 @@ class motorControl:
 			
 			if (max(counterBR, counterFL) >= numTicks):
 				breakIdx = i
+				#print(counterBR)
+				#print(counterFL)
 				#print("Break Idx: ", breakIdx)
 				break
 				
 		pwm_R.stop()
 		pwm_L.stop()
 		self.gameover()
-		#print("Distance Covered: ", distance_m, "(m)")
-		#print("Corresponding Encoder Ticks: ", numTicks)
+		print("Distance Covered: ", distance_m, "(m)")
+		print("Corresponding Encoder Ticks: ", numTicks)
 		if saveStates:
 			statesBR = statesBR[:breakIdx]
 			statesFL = statesFL[:breakIdx]

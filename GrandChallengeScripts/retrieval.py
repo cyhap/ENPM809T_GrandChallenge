@@ -4,9 +4,8 @@ import time
 
 def convertIn2Meters(distIn):
 	return 0.0254*distIn
-	
-def returnBlock2DropZone(myGrip, myMotor):
-	
+
+def drive2Pos(myMotor, dropOffPos):
 	#Compute the Angle to the Drop off point
 	xDif = dropOffPos[0] - myMotor.pos[0]
 	yDif = dropOffPos[1] - myMotor.pos[1]
@@ -33,7 +32,11 @@ def returnBlock2DropZone(myGrip, myMotor):
 		myMotor.pivotLeftAng(abs(turnAng), 75)
 		
 	# Go to drop zone
-	myMotor.forward((xDif**2 + yDif**2)**0.5, 45)
+	myMotor.forward((xDif**2 + yDif**2)**0.5, 40)
+		
+def returnBlock2DropZone(myGrip, myMotor, dropOffPos):
+	
+	drive2Pos(myMotor, dropOffPos)
 	# Release Block and back away
 	myGrip.openGrip()
 	myMotor.reverse(convertIn2Meters(7), 35)
@@ -59,8 +62,8 @@ if __name__ ==  "__main__":
 	startingOrient = 0 #Deg
 
 	#Drop Off Zone Center at 2ft * 10ft
-	#dropOffPos =  (2*oneFt, 10*oneFt)
-	dropOffPos =  (1.5*oneFt, 2*oneFt)
+	dropOffPos =  (oneFt, oneFt)
+	#dropOffPos =  (2*oneFt,10*oneFt)
 	
 	#Initialize Components
 	myGrip = grip.gripper()
@@ -74,10 +77,10 @@ if __name__ ==  "__main__":
 
 	#  Red Block HSV Mask
 	minH = 0#0 
-	minS = 126#70#158
-	minV = 77#50#92
-	maxH = 13#180
-	maxS = 217#216
+	minS = 70#158
+	minV = 50#92
+	maxH = 10#180
+	maxS = 255#216
 	maxV = 255#155
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
@@ -87,23 +90,23 @@ if __name__ ==  "__main__":
 	minH = 30#43 
 	minS = 100#23
 	minV = 50#27
-	maxH = 90#74
+	maxH = 79074
 	maxS = 255#243
 	maxV = 255#156
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	#maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB.append((minHSV, maxHSV))
 
 	#  Blue Block HSV Mask
-	minH = 107 
-	minS = 132
-	minV = 61
-	maxH = 121
-	maxS = 234
-	maxV = 120
+	minH = 78 
+	minS = 147
+	minV = 97
+	maxH = 147
+	maxS = 255
+	maxV = 255
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	#maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB.append((minHSV, maxHSV))
 
 	myPicTaker = picTaker.camera()
 
@@ -116,4 +119,4 @@ if __name__ ==  "__main__":
 	#FIXME move into a Function
 	# Returns the block to drop off zone in the event of no obstacles
 	if (blockHeld):
-		returnBlock2DropZone(myGrip, myMotor)
+		returnBlock2DropZone(myGrip, myMotor, dropOffPos)

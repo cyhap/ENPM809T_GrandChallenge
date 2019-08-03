@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
-def main(aPicTaker):
+def main(aPicTaker, aMsg):
 	#Define time stamp & record an image
 	pic_time = datetime.now().strftime('%Y%m%d%H%M%S')
 	#command = 'raspistill -w 1280 -h 720 -vf -hf -o '+pic_time+'.jpg'
@@ -30,7 +30,7 @@ def main(aPicTaker):
 	msg.preable = subject
 
 	#Email Text
-	body = MIMEText(subject)
+	body = MIMEText(aMsg)
 	msg.attach(body)
 
 	#Atach image

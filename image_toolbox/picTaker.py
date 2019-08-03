@@ -22,7 +22,7 @@ class camera:
 		self.cam.capture(imName)
 	def centroidAndArea(self, maskBounds, orig_im):
 		hsv_im = cv2.cvtColor(orig_im, cv2.COLOR_BGR2HSV)
-
+		
 		# Apply Mask to the Image. Identify 1 Object
 		minHsv = maskBounds[0]
 		maxHsv = maskBounds[1]
@@ -30,7 +30,7 @@ class camera:
 		kernelSize = 5
 		mask = cv2.blur(mask, (kernelSize,kernelSize))
 		masked = cv2.bitwise_and(orig_im, orig_im, mask=mask)
-		#cv2.imshow("Mask", mask)
+		#cv2.imshow("Mask", hsv_im)
 		#cv2.waitKey(0)
 		#Plot a dot at object center
 		#cv2.circle(orig_image, COI, 10, (255, 0, 0), -1)
