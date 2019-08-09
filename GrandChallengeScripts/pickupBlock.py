@@ -28,7 +28,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 		# Subtract dist for  the gripper
 		distance_m = distance_m - 4*0.0254
 		if (distance_m > maxDistAllowed_m):
-			motors.forward(maxDistAllowed_m, 40)
+			motors.forward(maxDistAllowed_m, 90)
 		print("Distance_m: ", distance_m)
 		print("Max Distance Allowed: ", maxDistAllowed_m)
 		# If Y is low enough then the block is close enough.
@@ -43,12 +43,13 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	grip.openGrip()
 	#time.sleep(1)
 	# Go Forward The Previously Meausred Distance
-	motors.forward(distance_m, 35) # Fixme Determine Duty Cycle
+	motors.forward(distance_m, 90) # Fixme Determine Duty Cycle
 	# Close the Gripper.
 	grip.closeGrip()
 	
 	emailStr = "Coordinates are: " + str(motors.pos)
 	email01.main(picTaker, emailStr)
+	time.sleep(1)
 	#print("Color was: ", color)
 	return (success, color)
 	
@@ -80,7 +81,7 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 			cntrs, areas = picTaker.centroidAndArea(maskBounds, orig_im)
 			# Only Care about the largest (closest block)
 			if len(areas) > 1:
-				print("WARNING MORE THAN ONE DETECTED")
+				print("More than one blocked deteced")
 			if areas:
 				method = 2
 				if method == 1:
@@ -118,7 +119,6 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 		print("Block Color is: ", colorUsed)
 	print("Center on Block: Success:" , success)
 	
-	
 	return success, COI, colorUsed
 	
 	
@@ -132,7 +132,9 @@ if __name__ == "__main__":
 	myGrip = grip.gripper()
 	myMotor= motors.motorControl()
 	mySodar = sodar.sodar()
-	maskBoundsRGB  = []
+
+	maskBoundsRGB  = {}
+
 	#  Red Block HSV Mask
 	minH = 0#0 
 	minS = 70#158
@@ -142,27 +144,30 @@ if __name__ == "__main__":
 	maxV = 255#155
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB['r'] = (minHSV, maxHSV)
+
 	#  Green Block HSV Mask
 	minH = 30#43 
 	minS = 100#23
 	minV = 50#27
-	maxH = 90#74
+	maxH = 79#74
 	maxS = 255#243
 	maxV = 255#156
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB['g'] = (minHSV, maxHSV)
+
 	#  Blue Block HSV Mask
-	minH = 107 
-	minS = 132
-	minV = 61
-	maxH = 121
-	maxS = 234
-	maxV = 120
+	inS = 147
+	minV = 97
+	maxH = 147
+	maxS = 255
+	maxV = 255
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	#maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB['b'] = (minHSV, maxHSV)
+
+	maskBoundsRGB_orig = maskBoundsRGB
 	
 	myPicTaker = picTaker.camera()
 	findAndPickUpBlock(myGrip, myMotor, mySodar, myPicTaker, maskBoundsRGB, maxAttempts=25)

@@ -1,16 +1,23 @@
 import RPi.GPIO as gpio
 import time
+#For tracing segmentation faults
+import faulthandler; faulthandler.enable()
 
 class gripper:
 	def __init__(self, OUTPUT_PIN=36):
 		self.OUTPUT_PIN = OUTPUT_PIN
 		self.changedVal = False
+		# These Positions are Duty Cycle Percentages
+		self.gripperMaxPos = 10
+		self.gripperMinPos = 6
+		self.init()
+	
+	def init(self):
 		gpio.setmode(gpio.BOARD)
 		gpio.setup(self.OUTPUT_PIN, gpio.OUT)
 		self.pwm = gpio.PWM(self.OUTPUT_PIN,  50) #50 Hz
-		# These Positions are Duty Cycle Percentages
-		self.gripperMaxPos = 10
-		self.gripperMinPos = 6 
+		self.currVal = 0
+		
 
 	def checkBounds(self, aPos):
 		if (aPos > self.gripperMaxPos or  aPos < self.gripperMinPos):
@@ -22,29 +29,37 @@ class gripper:
 
 	def move2Pos(self, aPos):
 		#print("In move2Pos")
-		if not self.changedVal:
-			aPos = self.checkBounds(aPos)
-			self.pwm.start(aPos)
-			self.changedVal = True
-		else:
-			aPos = self.checkBounds(aPos)
-			self.pwm.ChangeDutyCycle(aPos)
-		
+		if not (self.currVal == aPos):
+			if not self.changedVal:
+				aPos = self.checkBounds(aPos)
+				self.pwm.start(aPos)
+				self.changedVal = True
+			else:
+				aPos = self.checkBounds(aPos)
+				self.pwm.ChangeDutyCycle(aPos)
+			self.currVal = aPos
+				
+			time.sleep(2)
 		"""
+		self.init()
 		aPos = self.checkBounds(aPos)
 		self.pwm.start(aPos)
-		time.sleep(2)
-		self.pwm.stop()
+		#time.sleep(2)
+		self.cleanup()
+		#time.sleep(2)
 		"""
-			
 	def openGrip(self):
 		self.move2Pos(self.gripperMaxPos)
-		time.sleep(2)
+		#time.sleep(2)
 		
 	def closeGrip(self):
 		self.move2Pos(self.gripperMinPos)
-		time.sleep(2)
-
+		#time.sleep(2)
+		
+	def cleanup(self):
+		self.pwm.stop()
+		gpio.cleanup()
+		
 	def __del__(self):
 		self.pwm.stop()
 		gpio.cleanup()

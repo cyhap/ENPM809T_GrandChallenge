@@ -13,6 +13,14 @@ class sodar:
 		gpio.setup(echoPin, gpio.IN)
 		print("Sodar Created.")
 		
+	def init(self):
+		gpio.setmode(gpio.BOARD)
+		gpio.setup(self.trigPin, gpio.OUT)
+		gpio.setup(self.echoPin, gpio.IN)
+		
+	def cleanup(self):
+		gpio.cleanup()
+		
 	def __del__(self):
 		# Clearnup gpio pins and return distance estimate
 		gpio.cleanup()
@@ -21,6 +29,8 @@ class sodar:
 	# Returns distance in cm
 	# Use the average over the number of trials
 	def distance(self, numTrials = 1):
+		#self.init()
+		print("Measuring Distance")
 		allDistances = []
 		for i in range(numTrials):
 			#Ensure the pin is low
@@ -45,6 +55,7 @@ class sodar:
 			distance = pulse_duration*17150
 			allDistances.append(round(distance, 2))
 		retDistance = getMean(allDistances)
+		#self.cleanup()
 		return retDistance
 	
 if __name__ ==  "__main__" :

@@ -4,19 +4,9 @@ import time
 
 def convertIn2Meters(distIn):
 	return 0.0254*distIn
-
-def drive2Pos(myMotor, dropOffPos):
-	#Compute the Angle to the Drop off point
-	xDif = dropOffPos[0] - myMotor.pos[0]
-	yDif = dropOffPos[1] - myMotor.pos[1]
-	print("Current X Pos: ", myMotor.pos[0])
-	print("Current Y Pos: ", myMotor.pos[1])
-	print("Drop off X Pos: ", dropOffPos[0])
-	print("Drop off Y Pos: ", dropOffPos[1])
-	print("yDif: ", yDif, "XDif: ", xDif)
-	desiredOrient = math.degrees(math.atan2(yDif, xDif))
+def turn2DesAngle(myMotor, desiredOrient):
 	# Determine if which direction is better to pivot towards
-	currOrient = myMotor.orient %360
+	currOrient = myMotor.orient%360
 	print("Current Orient: ", currOrient)
 	print("Desired Orient: ", desiredOrient)
 	
@@ -30,7 +20,19 @@ def drive2Pos(myMotor, dropOffPos):
 		myMotor.pivotRightAng(abs(turnAng), 75)
 	elif turnAng < 0:
 		myMotor.pivotLeftAng(abs(turnAng), 75)
-		
+
+def drive2Pos(myMotor, dropOffPos):
+	#Compute the Angle to the Drop off point
+	xDif = dropOffPos[0] - myMotor.pos[0]
+	yDif = dropOffPos[1] - myMotor.pos[1]
+	print("Current X Pos: ", myMotor.pos[0])
+	print("Current Y Pos: ", myMotor.pos[1])
+	print("Drop off X Pos: ", dropOffPos[0])
+	print("Drop off Y Pos: ", dropOffPos[1])
+	print("yDif: ", yDif, "XDif: ", xDif)
+	desiredOrient = math.degrees(math.atan2(yDif, xDif))
+	
+	turn2DesAngle(myMotor, desiredOrient)
 	# Go to drop zone
 	myMotor.forward((xDif**2 + yDif**2)**0.5, 40)
 		
@@ -39,9 +41,9 @@ def returnBlock2DropZone(myGrip, myMotor, dropOffPos):
 	drive2Pos(myMotor, dropOffPos)
 	# Release Block and back away
 	myGrip.openGrip()
-	myMotor.reverse(convertIn2Meters(7), 35)
-	time.sleep(1)
-	myGrip.closeGrip()
+	myMotor.reverse(convertIn2Meters(7), 90)
+	#time.sleep(1)
+	#myGrip.closeGrip()
 	# Now go back to exploring
 
 if __name__ ==  "__main__":
@@ -73,7 +75,7 @@ if __name__ ==  "__main__":
 	 
 	mySodar = sodar.sodar()
 
-	maskBoundsRGB  = []
+	maskBoundsRGB  = {}
 
 	#  Red Block HSV Mask
 	minH = 0#0 
@@ -84,29 +86,31 @@ if __name__ ==  "__main__":
 	maxV = 255#155
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB['r'] = (minHSV, maxHSV)
 
 	#  Green Block HSV Mask
 	minH = 30#43 
 	minS = 100#23
 	minV = 50#27
-	maxH = 79074
+	maxH = 79#74
 	maxS = 255#243
 	maxV = 255#156
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB['g'] = (minHSV, maxHSV)
 
 	#  Blue Block HSV Mask
-	minH = 78 
-	minS = 147
+	inS = 147
 	minV = 97
 	maxH = 147
 	maxS = 255
 	maxV = 255
 	minHSV = (minH, minS, minV)
 	maxHSV = (maxH, maxS, maxV)
-	maskBoundsRGB.append((minHSV, maxHSV))
+	maskBoundsRGB['b'] = (minHSV, maxHSV)
+
+	maskBoundsRGB_orig = maskBoundsRGB
+
 
 	myPicTaker = picTaker.camera()
 

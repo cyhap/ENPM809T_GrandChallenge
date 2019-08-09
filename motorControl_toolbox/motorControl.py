@@ -4,6 +4,8 @@ import numpy as np
 import math
 import sys
 sys.path.insert(0, '/home/pi/enpm809T/email_toolbox/')
+sys.path.insert(0, '/home/pi/enpm809T/mpu_toolbox/')
+from orientation import orientComp
 import email01
 import pickle
 import faulthandler; faulthandler.enable()
@@ -19,7 +21,7 @@ class motorControl:
 		self.frontLeftEnc = frontLeftEnc
 		self.backRightEnc = backRightEnc
 		self.wheelDiameter_m = 0.065
-		self.distBetweenWheels_m = 0.24
+		self.distBetweenWheels_m = 0.245 #0.24 orig
 		self.Mode = 1 #TODO Add Enumerations 0 is use time 1 is use Encoder Ticks
 		self.PathCommands = []
 		self.countsBR = []
@@ -27,6 +29,9 @@ class motorControl:
 		self.timeUpdates = []
 		self.pos = [initPosOrient[0], initPosOrient[1]]
 		self.orient = initPosOrient[2]
+		self.actPos = [initPosOrient[0], initPosOrient[1]]
+		self.actOrient = initPosOrient[2]
+		self.mpu = orientComp(100)
 		timeNow = time.strftime("%Y%m%d-%H%M%S")
 		out_file = "selectedMoves_" + timeNow + ".pkl"
 		self.fptr = open(out_file, "wb")
@@ -43,45 +48,48 @@ class motorControl:
 
 		
 	def gameover(self):
+		gpio.setmode(gpio.BOARD)
 		gpio.output(self.IN_1, False)
 		gpio.output(self.IN_2, False)
 		gpio.output(self.IN_3, False)
 		gpio.output(self.IN_4, False)
+		#gpio.cleanup()
 
 	#FIXME UPDATE LATER
 	def forward(self, control, dutyCyclePcnt):
 		pins = [self.IN_4, self.IN_1] # Right Pin the Left Pin
-		self.drive(pins, control, dutyCyclePcnt)
+		self.drive(pins, control, dutyCyclePcnt, self.actOrient)
 		self.PathCommands.append(("FWD", control))
 		self.pos[0] += math.cos(math.radians(self.orient))*control
 		self.pos[1] += math.sin(math.radians(self.orient))*control
-		print("Current X Pos: ", self.pos[0])
-		print("Current Y Pos: ", self.pos[1])
+		#print("Current X Pos: ", self.pos[0])
+		#print("Current Y Pos: ", self.pos[1])
 		
 	def reverse(self, control, dutyCyclePcnt):
 		pins = [self.IN_3, self.IN_2]
-		self.drive(pins, control, dutyCyclePcnt)
+		self.drive(pins, control, dutyCyclePcnt, self.actOrient)
 		self.PathCommands.append(("RVS", control))
 		self.pos[0] -= math.cos(math.radians(self.orient))*control
 		self.pos[1] -= math.sin(math.radians(self.orient))*control
-		print("Current X Pos: ", self.pos[0])
-		print("Current Y Pos: ", self.pos[1])
+		#print("Current X Pos: ", self.pos[0])
+		#print("Current Y Pos: ", self.pos[1])
 		
-	def pivotLeft(self, control, dutyCyclePcnt):
+	def pivotLeft(self, control, dutyCyclePcnt, desiredAng = None):
 		pins = [self.IN_4, self.IN_2]
-		self.drive(pins, control, dutyCyclePcnt)
+		self.drive(pins, control, dutyCyclePcnt, desiredAng)
 		self.PathCommands.append(("P_Lft", control))
 		
-	def pivotRight(self, control, dutyCyclePcnt):
+	def pivotRight(self, control, dutyCyclePcnt, desiredAng = None):
 		pins = [self.IN_3, self.IN_1]
-		self.drive(pins, control, dutyCyclePcnt)
+		self.drive(pins, control, dutyCyclePcnt, desiredAng)
 		self.PathCommands.append(("P_Rgt", control))
 		
 	def pivotLeftAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
 		circumference_m = self.distBetweenWheels_m*math.pi
 		dist_m = circumference_m*ang_deg/360
-		self.pivotLeft(dist_m, dutyCyclePcnt)
+		desiredAng = self.actOrient+ang_deg
+		self.pivotLeft(dist_m, dutyCyclePcnt, desiredAng)
 		self.PathCommands.append(("P_Lft_Ang", ang_deg))
 		self.orient += ang_deg
 		print("Current Orientation: ", self.orient)
@@ -90,22 +98,31 @@ class motorControl:
 		self.Mode = 1
 		circumference_m = self.distBetweenWheels_m*math.pi
 		dist_m = circumference_m*ang_deg/360
-		self.pivotRight(dist_m, dutyCyclePcnt)
+		desiredAng = self.actOrient+ang_deg
+		self.pivotRight(dist_m, dutyCyclePcnt, desiredAng)
 		self.PathCommands.append(("P_Rgt_Ang", ang_deg))
 		self.orient -= ang_deg
-		print("Current Orientation: ", self.orient)
+		#print("Current Orientation: ", self.orient)
 	
-	def drive(self, pins, control, dutyCyclePcnt):
+	def drive(self, pins, control, dutyCyclePcnt, desiredAng):
+		#self.init()
 		if self.Mode == 0:
-			self.moveMotorsTime(pins, control, dutyCyclePcnt)
+			self.moveMotorsTime(pins, control, dutyCyclePcnt, desiredAng)
 		elif self.Mode == 1:
-			self.moveMotorsDist(pins, control, dutyCyclePcnt)
+			#print("pins: ", pins, "control: ", control, "dutyCyclePcnt: ", dutyCyclePcnt, "desiredAng: ", desiredAng)
+			self.moveMotorsDist(pins, control, dutyCyclePcnt, desiredAng)
+		#self.gameover()
 		
-	def moveMotorsDist(self, pins, distance_m, dutyCyclePcnt):
+	def moveMotorsDist(self, pins, distance_m, dutyCyclePcnt, desiredAng):
 		#Added these to keep track of when different moves start
 		self.countsBR.append(-1)
 		self.countsFL.append(-1)
 		self.timeUpdates.append(-1)
+		
+		if desiredAng is None:
+			print("Error! No Desired Ang is not yet handled")
+			return
+		#FIXME ADD CODE FROM HERE FOR IMU SENSOR
 		
 		numWheelRevs = distance_m/(self.wheelDiameter_m*np.pi)
 		numTicks = int(np.ceil(numWheelRevs*960))
@@ -132,7 +149,7 @@ class motorControl:
 		pwm_L = gpio.PWM(pins[1], 50)
 		pwm_R.start(dutyCyclePcnt)
 		pwm_L.start(dutyCyclePcnt)
-		time.sleep(0.01)
+		#time.sleep(0.01)
 			
 		# 1 Second will go through this loop ~4250 times
 		lastTime = time.time()
@@ -215,6 +232,12 @@ class motorControl:
 			dc_R = min(dutyCyclePcnt*ratioR, 100)
 			dc_L = min(dutyCyclePcnt*ratioL, 100)
 			"""
+			# May Remove this
+			if counterBR >= numTicks:
+				dc_R = 0
+			elif counterFL >= numTicks:
+				dc_L = 0
+				
 			pwm_R.ChangeDutyCycle(dc_R)
 			pwm_L.ChangeDutyCycle(dc_L)
 			
@@ -227,9 +250,9 @@ class motorControl:
 				
 		pwm_R.stop()
 		pwm_L.stop()
-		self.gameover()
-		print("Distance Covered: ", distance_m, "(m)")
-		print("Corresponding Encoder Ticks: ", numTicks)
+		#self.gameover()
+		#print("Distance Covered: ", distance_m, "(m)")
+		#print("Corresponding Encoder Ticks: ", numTicks)
 		if saveStates:
 			statesBR = statesBR[:breakIdx]
 			statesFL = statesFL[:breakIdx]
@@ -267,7 +290,7 @@ class motorControl:
 		print("Key: ", event)
 		event = event.lower()
 		if event == "w":
-			dutyCyclePercent = 35
+			dutyCyclePercent = 90
 			dist_m = float(input("Going forward. Please Input Desired Distance (m)"))
 			self.forward(dist_m, dutyCyclePercent)
 		elif event == "a":
@@ -279,7 +302,7 @@ class motorControl:
 			rotAng = float(input("Pivoting Right. Please Input Desired Angle (deg)"))
 			self.pivotRightAng(rotAng, dutyCyclePercent)
 		elif event == "z":
-			dutyCyclePercent = 35
+			dutyCyclePercent = 90
 			dist_m = float(input("Going in Reverse. Please Input Desired Distance (m)"))
 			self.reverse(dist_m, dutyCyclePercent)
 		elif event == "pic":
@@ -291,7 +314,11 @@ class motorControl:
 			
 		
 if __name__ == "__main__":
+	sys.path.insert(0, '/home/pi/enpm809T/gripper_toolbox/')
+	import gripper as grip
+
 	myMotor = motorControl()
+	myGrip = grip.gripper()
 	"""
 	dist_m = 0.9144
 	#dist_m = 0.15
@@ -308,3 +335,6 @@ if __name__ == "__main__":
 	while key != 'p':
 		key = input("Input Control: \n")
 		myMotor.key_input(key)
+		
+		gripperPos = float(input("Please Enter the gripper position."))
+		myGrip.move2Pos(gripperPos)
