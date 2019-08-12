@@ -4,6 +4,9 @@ import time
 
 def convertIn2Meters(distIn):
 	return 0.0254*distIn
+def convertMeters2In(distIn):
+	return distIn/0.0254
+	
 def turn2DesAngle(myMotor, desiredOrient):
 	# Determine if which direction is better to pivot towards
 	currOrient = myMotor.orient%360
@@ -34,7 +37,7 @@ def drive2Pos(myMotor, dropOffPos):
 	
 	turn2DesAngle(myMotor, desiredOrient)
 	# Go to drop zone
-	myMotor.forward((xDif**2 + yDif**2)**0.5, 40)
+	myMotor.forward((xDif**2 + yDif**2)**0.5, 90)
 		
 def returnBlock2DropZone(myGrip, myMotor, dropOffPos):
 	

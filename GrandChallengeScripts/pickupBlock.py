@@ -12,7 +12,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	
 	grip.openGrip()
 	# Max Allowable Distance
-	maxDistAllowed_m = 8*0.0254 # 8  Inches
+	maxDistAllowed_m = 10*0.0254 # 8  Inches
 	# Start the read distance outside the max distance allowed
 	distance_m  = maxDistAllowed_m+1
 	while (distance_m > maxDistAllowed_m):
@@ -49,7 +49,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	
 	emailStr = "Coordinates are: " + str(motors.pos)
 	email01.main(picTaker, emailStr)
-	time.sleep(1)
+	#time.sleep(1)
 	#print("Color was: ", color)
 	return (success, color)
 	
@@ -72,8 +72,15 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 		#Mask Out Top Portion of the Image
 		test_im = orig_im.copy()
 		test_im[0:115][:][:] = 0
+		# Mask out gripper
+		# Mask out 375 - 480 in the Y
+		# Mask out 0-205 and 500 to 640
+		test_im[375:480][0:205] = 0
+		test_im[375:480][500:640] = 0
 		orig_im = test_im
 		
+		#cv2.imshow("Vision", orig_im)
+		#key = cv2.waitKey(1) & 0xFF
 		#Crop Image to remove the gripper
 		#orig_im = orig_im[0:240, 0:640]
 		colorUsed = 'z'

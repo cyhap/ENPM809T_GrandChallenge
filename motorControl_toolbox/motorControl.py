@@ -5,7 +5,9 @@ import math
 import sys
 sys.path.insert(0, '/home/pi/enpm809T/email_toolbox/')
 sys.path.insert(0, '/home/pi/enpm809T/mpu_toolbox/')
+sys.path.insert(0, '/home/pi/enpm809T/GrandChallengeScripts/')
 from orientation import orientComp
+from retrieval import convertIn2Meters
 import email01
 import pickle
 import faulthandler; faulthandler.enable()
@@ -21,7 +23,8 @@ class motorControl:
 		self.frontLeftEnc = frontLeftEnc
 		self.backRightEnc = backRightEnc
 		self.wheelDiameter_m = 0.065
-		self.distBetweenWheels_m = 0.245 #0.24 orig
+		self.distBetweenWheelsL_m = 0.242 #0.24 orig
+		self.distBetweenWheelsR_m = 0.2453 #0.24 orig
 		self.Mode = 1 #TODO Add Enumerations 0 is use time 1 is use Encoder Ticks
 		self.PathCommands = []
 		self.countsBR = []
@@ -35,6 +38,7 @@ class motorControl:
 		timeNow = time.strftime("%Y%m%d-%H%M%S")
 		out_file = "selectedMoves_" + timeNow + ".pkl"
 		self.fptr = open(out_file, "wb")
+		self.minTurnAng = 2.5 # Deg
 		self.init()
 		
 	def init(self):
@@ -58,51 +62,59 @@ class motorControl:
 	#FIXME UPDATE LATER
 	def forward(self, control, dutyCyclePcnt):
 		pins = [self.IN_4, self.IN_1] # Right Pin the Left Pin
+		self.turning = False
 		self.drive(pins, control, dutyCyclePcnt, self.actOrient)
-		self.PathCommands.append(("FWD", control))
+		#self.PathCommands.append(("FWD", control))
 		self.pos[0] += math.cos(math.radians(self.orient))*control
 		self.pos[1] += math.sin(math.radians(self.orient))*control
+		self.PathCommands.append((self.pos.copy(), self.orient))
 		#print("Current X Pos: ", self.pos[0])
 		#print("Current Y Pos: ", self.pos[1])
 		
 	def reverse(self, control, dutyCyclePcnt):
 		pins = [self.IN_3, self.IN_2]
+		self.turning = False
 		self.drive(pins, control, dutyCyclePcnt, self.actOrient)
-		self.PathCommands.append(("RVS", control))
 		self.pos[0] -= math.cos(math.radians(self.orient))*control
 		self.pos[1] -= math.sin(math.radians(self.orient))*control
+		self.PathCommands.append((self.pos.copy(), self.orient))
 		#print("Current X Pos: ", self.pos[0])
 		#print("Current Y Pos: ", self.pos[1])
 		
 	def pivotLeft(self, control, dutyCyclePcnt, desiredAng = None):
 		pins = [self.IN_4, self.IN_2]
+		self.turning = True
 		self.drive(pins, control, dutyCyclePcnt, desiredAng)
-		self.PathCommands.append(("P_Lft", control))
+		#self.PathCommands.append(("P_Lft", control))
 		
 	def pivotRight(self, control, dutyCyclePcnt, desiredAng = None):
 		pins = [self.IN_3, self.IN_1]
+		self.turning = True
 		self.drive(pins, control, dutyCyclePcnt, desiredAng)
-		self.PathCommands.append(("P_Rgt", control))
+		#self.PathCommands.append(("P_Rgt", control))
 		
 	def pivotLeftAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
-		circumference_m = self.distBetweenWheels_m*math.pi
+		circumference_m = self.distBetweenWheelsL_m*math.pi
 		dist_m = circumference_m*ang_deg/360
 		desiredAng = self.actOrient+ang_deg
 		self.pivotLeft(dist_m, dutyCyclePcnt, desiredAng)
-		self.PathCommands.append(("P_Lft_Ang", ang_deg))
-		self.orient += ang_deg
+		if ang_deg > self.minTurnAng:
+			self.orient += ang_deg
+		self.PathCommands.append((self.pos.copy(), self.orient))
 		print("Current Orientation: ", self.orient)
 		
 	def pivotRightAng(self, ang_deg, dutyCyclePcnt):
 		self.Mode = 1
-		circumference_m = self.distBetweenWheels_m*math.pi
+		circumference_m = self.distBetweenWheelsR_m*math.pi
 		dist_m = circumference_m*ang_deg/360
 		desiredAng = self.actOrient+ang_deg
 		self.pivotRight(dist_m, dutyCyclePcnt, desiredAng)
-		self.PathCommands.append(("P_Rgt_Ang", ang_deg))
-		self.orient -= ang_deg
-		#print("Current Orientation: ", self.orient)
+		#Ignoring small angles
+		if ang_deg > self.minTurnAng:
+			self.orient -= ang_deg
+		self.PathCommands.append((self.pos.copy(), self.orient))
+		print("Current Orientation: ", self.orient)
 	
 	def drive(self, pins, control, dutyCyclePcnt, desiredAng):
 		#self.init()
@@ -123,6 +135,10 @@ class motorControl:
 			print("Error! No Desired Ang is not yet handled")
 			return
 		#FIXME ADD CODE FROM HERE FOR IMU SENSOR
+		# Remove 2 Inches due to momentum
+		print("Distance was: ", distance_m)
+		if not self.turning:
+			distance_m = max(distance_m - convertIn2Meters(2), 0.01)
 		
 		numWheelRevs = distance_m/(self.wheelDiameter_m*np.pi)
 		numTicks = int(np.ceil(numWheelRevs*960))
@@ -138,6 +154,7 @@ class motorControl:
 
 		dc_R = dutyCyclePcnt
 		dc_L = dutyCyclePcnt
+		orig_pcnt = dutyCyclePcnt
 		
 		saveStates = False
 		if saveStates:
@@ -145,18 +162,23 @@ class motorControl:
 			statesBR = np.zeros((1000000, 1))
 		
 		#Initialize pwm signal to control motor
+		time.sleep(.25)
 		pwm_R = gpio.PWM(pins[0], 50)
 		pwm_L = gpio.PWM(pins[1], 50)
-		pwm_R.start(dutyCyclePcnt)
-		pwm_L.start(dutyCyclePcnt)
+		#Placed the start below
+		#pwm_R.start(dutyCyclePcnt)
+		#pwm_L.start(dutyCyclePcnt)
 		#time.sleep(0.01)
 			
 		# 1 Second will go through this loop ~4250 times
 		lastTime = time.time()
 		buff = 0
-		gain = 750
+		gain = 350#750
 		minCheckTime = 0.007
 		for i in range(0,1000000):
+			if i == 0:
+				pwm_R.start(dutyCyclePcnt)
+				pwm_L.start(dutyCyclePcnt)
 			if saveStates:
 				#print("Counter FL: ", counterFL, "GPIO State FL: ", gpio.input(self.frontLeftEnc), "Counter BR: ", counterBR ,"GPIO State BR: ", gpio.input(self.backRightEnc))
 				statesFL[i] = buttonFL
@@ -185,9 +207,9 @@ class motorControl:
 				print("lastUpdateFL", lastUpdateFL)
 				print("Time interval", timeInterval)
 				"""
-				self.countsBR.append(counterBR)
-				self.countsFL.append(counterFL)
-				self.timeUpdates.append(timeInterval)
+				#self.countsBR.append(counterBR)
+				#self.countsFL.append(counterFL)
+				#self.timeUpdates.append(timeInterval)
 
 				lastUpdateBR = counterBR
 				lastUpdateFL = counterFL
@@ -199,6 +221,14 @@ class motorControl:
 				#Negaitve Means Right has gone faster than left
 				#0 Is ideal
 				#"""
+				"""
+				# Slow down as we get close to the end
+				avgCnt = (counterBR+counterFL)/2
+				if (avgCnt/numTicks > .6):
+					dc_L = dc_L*.1
+					dc_R = dc_R*.1
+				"""
+					
 				#Method 3
 				if (diffSpds > buff):
 					gainR = 0
@@ -217,9 +247,29 @@ class motorControl:
 						dc_L = dutyCyclePcnt
 					gainR = 0
 					gainL = 0
+				
+				"""
+				if (diffSpds > buff):
+					gainR = 7
+					gainL = -7
+				elif (diffSpds < -buff):
+					gainR = -7
+					gainL = 7
+				else:
+					#Scale the same speed up to desired ratio
+					#Slower Motor will have a higher duty cycle
+					if dc_R > dc_L:
+						dc_L = dc_L*dutyCyclePcnt/dc_R
+						dc_R = dutyCyclePcnt
+					else:
+						dc_R = dc_R*dutyCyclePcnt/dc_L
+						dc_L = dutyCyclePcnt
+					gainR = 0
+					gainL = 0
+				"""
 					
-				dc_R = min(dc_R + gainR, 100)
-				dc_L = min(dc_L + gainL, 100)
+				dc_R = max(min(dc_R + gainR, 100), 1)
+				dc_L = max(min(dc_L + gainL, 100), 1)
 				#print("DC_L: ", dc_L)
 				#print("DC_R: ", dc_R)
 				
@@ -235,22 +285,25 @@ class motorControl:
 			# May Remove this
 			if counterBR >= numTicks:
 				dc_R = 0
-			elif counterFL >= numTicks:
+			if counterFL >= numTicks:
 				dc_L = 0
 				
 			pwm_R.ChangeDutyCycle(dc_R)
 			pwm_L.ChangeDutyCycle(dc_L)
 			
-			if (max(counterBR, counterFL) >= numTicks):
+			if (counterBR >= numTicks and counterFL >= numTicks):
+			#Old Statement
+			#(max(counterBR, counterFL) >= numTicks):
 				breakIdx = i
-				#print(counterBR)
-				#print(counterFL)
+				print("Counter BR: ", counterBR)
+				print("Counter FL: ", counterFL)
+				print("Num ticks: " , numTicks)
 				#print("Break Idx: ", breakIdx)
 				break
 				
 		pwm_R.stop()
 		pwm_L.stop()
-		#self.gameover()
+		self.gameover()
 		#print("Distance Covered: ", distance_m, "(m)")
 		#print("Corresponding Encoder Ticks: ", numTicks)
 		if saveStates:
@@ -278,8 +331,10 @@ class motorControl:
 	def __del__(self):
 		# Clearnup gpio pins
 		gpio.cleanup()
-		writeOut = (self.PathCommands, self.countsBR, self.countsFL, self.timeUpdates)
+		#writeOut = (self.PathCommands, self.countsBR, self.countsFL, self.timeUpdates)
 		#TODO Figure this out
+		#print("This is what was saved to a file:")
+		#print(self.PathCommands)
 		pickle.dump(self.PathCommands, self.fptr)
 		self.fptr.close()
 		
@@ -291,7 +346,8 @@ class motorControl:
 		event = event.lower()
 		if event == "w":
 			dutyCyclePercent = 90
-			dist_m = float(input("Going forward. Please Input Desired Distance (m)"))
+			dist_In = float(input("Going forward. Please Input Desired Distance (In)"))
+			dist_m = convertIn2Meters(dist_In)
 			self.forward(dist_m, dutyCyclePercent)
 		elif event == "a":
 			dutyCyclePercent = 75
@@ -303,7 +359,8 @@ class motorControl:
 			self.pivotRightAng(rotAng, dutyCyclePercent)
 		elif event == "z":
 			dutyCyclePercent = 90
-			dist_m = float(input("Going in Reverse. Please Input Desired Distance (m)"))
+			dist_In = float(input("Going in Reverse. Please Input Desired Distance (In)"))
+			dist_m = convertIn2Meters(dist_In)
 			self.reverse(dist_m, dutyCyclePercent)
 		elif event == "pic":
 			email01.main()
@@ -336,5 +393,5 @@ if __name__ == "__main__":
 		key = input("Input Control: \n")
 		myMotor.key_input(key)
 		
-		gripperPos = float(input("Please Enter the gripper position."))
-		myGrip.move2Pos(gripperPos)
+		#gripperPos = float(input("Please Enter the gripper position."))
+		#myGrip.move2Pos(gripperPos)

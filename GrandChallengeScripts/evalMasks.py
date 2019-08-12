@@ -49,6 +49,8 @@ myPicTaker = picTaker.camera()
 maskBoundsRGB_orig
 
 orig_im = myPicTaker.getIm()
+cv2.imshow("Orig Im", orig_im)
+cv2.waitKey(0)
 for key, maskBounds in maskBoundsRGB.items():
 	hsv_im = cv2.cvtColor(orig_im, cv2.COLOR_BGR2HSV)
 		

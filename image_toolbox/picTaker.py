@@ -11,15 +11,16 @@ class camera:
 		self.cam = picamera.PiCamera()
 		self.cam.resolution = (640, 480)
 		self.cam.rotation = 180
-		self.cam.start_preview()
+		#self.cam.start_preview()
 		time.sleep(2)
 		
 	def getIm(self):
 		with picamera.array.PiRGBArray(self.cam) as stream:
+			
 			self.cam.capture(stream, format = "bgr")
 			return stream.array
 	def saveIm(self, imName):
-		self.cam.capture(imName)
+		self.cam.capture(imName, use_video_port = True)
 	def centroidAndArea(self, maskBounds, orig_im):
 		hsv_im = cv2.cvtColor(orig_im, cv2.COLOR_BGR2HSV)
 		

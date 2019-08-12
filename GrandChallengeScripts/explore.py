@@ -14,14 +14,21 @@ import math
 #For tracing segmentation faults
 import faulthandler; faulthandler.enable()
 
+def computeDesOrient(currPos, desPos):
+	xDif = desPos[0] - currPos[0]
+	yDif = desPos[1] - currPos[1]
+	#print("yDif: ", yDif, "XDif: ", xDif)
+	desiredOrient = math.degrees(math.atan2(yDif, xDif))
+	return desiredOrient
+		
 # Starting at 1ft by 1 ft
 oneFt = retrieval.convertIn2Meters(12)
 startingPos = (oneFt, oneFt)
 startingOrient = 0 #Deg
 
 #Drop Off Zone Center at 2ft * 10ft
-dropOffPos =  (1*oneFt, 3*oneFt)
-#dropOffPos =  (1*oneFt,10*oneFt)
+#dropOffPos =  (1*oneFt, 3*oneFt)
+dropOffPos =  (2*oneFt,10*oneFt)
 
 #Initialize Components
 myGrip = grip.gripper()
@@ -65,14 +72,16 @@ minHSV = (minH, minS, minV)
 maxHSV = (maxH, maxS, maxV)
 maskBoundsRGB['b'] = (minHSV, maxHSV)
 
-maskBoundsRGB_orig = maskBoundsRGB
+maskBoundsRGB_orig = maskBoundsRGB.copy()
 
 #print("These arre the mask Bounds2", maskBoundsRGB.keys())
 
 myPicTaker = picTaker.camera()
 
 #Explore Algorithm
-#TODO
+#corners = [[0,0], [12*oneFt, 0], [12*oneFt, 12*oneFt], [0, 12*oneFt]]
+corners = [[12*oneFt, 0], [12*oneFt, 12*oneFt]]
+cornerIdx = 1
 blocksFound = {}
 for i in range(0,3):
 	while maskBoundsRGB:
@@ -82,19 +91,10 @@ for i in range(0,3):
 		
 		# This is a check to see if it is in the drop off zone
 		#(myMotor.pos[0] < dropOffPos[0]+2*oneFt and myMotor.pos[1] > dropOffPos[1]-2*oneFt):
-		print("Looking towards the Center!")
-		#Look towards the center
-		#Compute angle to center
-		centerArea = [6*oneFt, 6*oneFt]
-		xDif = centerArea[0] - myMotor.pos[0]
-		yDif = centerArea[1] - myMotor.pos[1]
-		#print("Current X Pos: ", myMotor.pos[0])
-		#print("Current Y Pos: ", myMotor.pos[1])
-		#print("Drop off X Pos: ", centerArea[0])
-		#print("Drop off Y Pos: ", centerArea[1])
-		#print("yDif: ", yDif, "XDif: ", xDif)
-		desiredOrient = math.degrees(math.atan2(yDif, xDif))
-		
+		print("Looking towards this corner: ", corners[cornerIdx])
+		#Look towards a corner
+		#Compute angle to that corner
+		desiredOrient = computeDesOrient(myMotor.pos, corners[cornerIdx])
 		#retrieval.drive2Pos(myMotor, [6, 6])
 		retrieval.turn2DesAngle(myMotor, desiredOrient)
 		
@@ -110,7 +110,11 @@ for i in range(0,3):
 			retrieval.returnBlock2DropZone(myGrip, myMotor, dropOffPos)
 			print("Block Returned to Drop Zone")
 			# Remove Block that was found
-			#blocksFound[color] = maskBoundsRGB.pop(color)
-		
+			blocksFound[color] = maskBoundsRGB.pop(color)
+		else:
+			cornerIdx = (cornerIdx + 1) % len(corners)
 	# Enforce the search for 1 Red Green or Blue before restarting
 	maskBoundsRGB = maskBoundsRGB_orig.copy()
+	print("Found one of each should try again.")
+	print("maskBoundsRGB contents: ", maskBoundsRGB)
+	print("maskBoundsRGB_orig contents: ", maskBoundsRGB_orig)
