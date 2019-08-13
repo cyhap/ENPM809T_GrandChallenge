@@ -50,7 +50,16 @@ maskBoundsRGB_orig
 
 orig_im = myPicTaker.getIm()
 cv2.imshow("Orig Im", orig_im)
+test_im = orig_im.copy()
+for i in range(375, 480):
+	test_im[i][0:140] = 0
+	test_im[i][500:640] = 0
+for i in range(440, 480):
+	test_im[i][140:205] = 0
+	
+cv2.imshow("Cropped Im", test_im)		
 cv2.waitKey(0)
+
 for key, maskBounds in maskBoundsRGB.items():
 	hsv_im = cv2.cvtColor(orig_im, cv2.COLOR_BGR2HSV)
 		
@@ -72,3 +81,4 @@ ans = input("Save Image?")
 if ans =='y':
 	cv2.imwrite("evalMask.jpg", orig_im)
 	print("Image Saved")
+

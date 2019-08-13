@@ -16,7 +16,6 @@ class camera:
 		
 	def getIm(self):
 		with picamera.array.PiRGBArray(self.cam) as stream:
-			
 			self.cam.capture(stream, format = "bgr")
 			return stream.array
 	def saveIm(self, imName):

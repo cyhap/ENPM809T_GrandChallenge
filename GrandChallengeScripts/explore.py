@@ -11,6 +11,7 @@ import sodarMeasure as sodar
 from pickupBlock import findAndPickUpBlock
 import retrieval
 import math
+import time
 #For tracing segmentation faults
 import faulthandler; faulthandler.enable()
 
@@ -28,7 +29,7 @@ startingOrient = 0 #Deg
 
 #Drop Off Zone Center at 2ft * 10ft
 #dropOffPos =  (1*oneFt, 3*oneFt)
-dropOffPos =  (2*oneFt,10*oneFt)
+dropOffPos =  (1*oneFt,10*oneFt)
 
 #Initialize Components
 myGrip = grip.gripper()
@@ -42,9 +43,9 @@ maskBoundsRGB  = {}
 
 #  Red Block HSV Mask
 minH = 0#0 
-minS = 70#158
-minV = 50#92
-maxH = 10#180
+minS = 142#158
+minV = 71#92
+maxH = 4#180
 maxS = 255#216
 maxV = 255#155
 minHSV = (minH, minS, minV)
@@ -63,11 +64,12 @@ maxHSV = (maxH, maxS, maxV)
 maskBoundsRGB['g'] = (minHSV, maxHSV)
 
 #  Blue Block HSV Mask
-inS = 147
-minV = 97
-maxH = 147
-maxS = 255
-maxV = 255
+minH = 95
+minS = 154
+minV = 35
+maxH = 114
+maxS = 229
+maxV = 211
 minHSV = (minH, minS, minV)
 maxHSV = (maxH, maxS, maxV)
 maskBoundsRGB['b'] = (minHSV, maxHSV)
@@ -80,10 +82,11 @@ myPicTaker = picTaker.camera()
 
 #Explore Algorithm
 #corners = [[0,0], [12*oneFt, 0], [12*oneFt, 12*oneFt], [0, 12*oneFt]]
-corners = [[12*oneFt, 0], [12*oneFt, 12*oneFt]]
+corners = [[12*oneFt, 0], [12*oneFt, 12*oneFt], [0,0]]
 cornerIdx = 1
 blocksFound = {}
-for i in range(0,3):
+numBlocksFound = 0
+for i in range(0,5):
 	while maskBoundsRGB:
 		#print("These are the mask Bounds", maskBoundsRGB.keys())
 		# Check t see that its outside the construction zone
@@ -100,7 +103,7 @@ for i in range(0,3):
 		
 		print("Searching")
 		# At some point decide to execute find and pick up block
-		retVal = findAndPickUpBlock(myGrip, myMotor, mySodar, myPicTaker, maskBoundsRGB, maxAttempts=15)
+		retVal = findAndPickUpBlock(myGrip, myMotor, mySodar, myPicTaker, maskBoundsRGB, maxAttempts=10)
 		blockHeld = retVal[0]
 		color = retVal[1]
 		#FIXME move into a Function
@@ -109,12 +112,19 @@ for i in range(0,3):
 			print("Block Found: ", color)
 			retrieval.returnBlock2DropZone(myGrip, myMotor, dropOffPos)
 			print("Block Returned to Drop Zone")
+			numBlocksFound += 1
 			# Remove Block that was found
 			blocksFound[color] = maskBoundsRGB.pop(color)
+			if (numBlocksFound > 4):
+				print("Does this help? Sleeping for 5 Seconds")
+				time.sleep(5)
 		else:
 			cornerIdx = (cornerIdx + 1) % len(corners)
+		
 	# Enforce the search for 1 Red Green or Blue before restarting
 	maskBoundsRGB = maskBoundsRGB_orig.copy()
 	print("Found one of each should try again.")
-	print("maskBoundsRGB contents: ", maskBoundsRGB)
-	print("maskBoundsRGB_orig contents: ", maskBoundsRGB_orig)
+	#print("maskBoundsRGB contents: ", maskBoundsRGB)
+	#print("maskBoundsRGB_orig contents: ", maskBoundsRGB_orig)
+	#print("Sleeping for 3 Seconds to allow cleanup?")
+	#time.sleep(3)

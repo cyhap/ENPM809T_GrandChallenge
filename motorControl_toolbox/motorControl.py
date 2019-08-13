@@ -23,8 +23,8 @@ class motorControl:
 		self.frontLeftEnc = frontLeftEnc
 		self.backRightEnc = backRightEnc
 		self.wheelDiameter_m = 0.065
-		self.distBetweenWheelsL_m = 0.242 #0.24 orig
-		self.distBetweenWheelsR_m = 0.2453 #0.24 orig
+		self.distBetweenWheelsL_m = 0.239 #0.24 orig
+		self.distBetweenWheelsR_m = 0.247 #0.24 orig
 		self.Mode = 1 #TODO Add Enumerations 0 is use time 1 is use Encoder Ticks
 		self.PathCommands = []
 		self.countsBR = []
@@ -162,7 +162,8 @@ class motorControl:
 			statesBR = np.zeros((1000000, 1))
 		
 		#Initialize pwm signal to control motor
-		time.sleep(.25)
+		time.sleep(0.05)
+		#time.sleep(.25)
 		pwm_R = gpio.PWM(pins[0], 50)
 		pwm_L = gpio.PWM(pins[1], 50)
 		#Placed the start below
@@ -175,10 +176,14 @@ class motorControl:
 		buff = 0
 		gain = 350#750
 		minCheckTime = 0.007
+		#pwm_R.start(dutyCyclePcnt)
+		#pwm_L.start(dutyCyclePcnt)
+		#print("About to start motor for loop")
 		for i in range(0,1000000):
 			if i == 0:
 				pwm_R.start(dutyCyclePcnt)
 				pwm_L.start(dutyCyclePcnt)
+			
 			if saveStates:
 				#print("Counter FL: ", counterFL, "GPIO State FL: ", gpio.input(self.frontLeftEnc), "Counter BR: ", counterBR ,"GPIO State BR: ", gpio.input(self.backRightEnc))
 				statesFL[i] = buttonFL
@@ -197,6 +202,10 @@ class motorControl:
 
 			#if stateChange:
 			timeInterval = time.time() - lastTime
+			#if (timeInterval > 1):
+			#	print("This shouldnt happen")
+			#	print("Sleeping for a second")
+			#	time.sleep(1)
 			if (timeInterval > minCheckTime):
 				dBR_dt = (counterBR - lastUpdateBR) / timeInterval
 				dFL_dt = (counterFL - lastUpdateFL) / timeInterval

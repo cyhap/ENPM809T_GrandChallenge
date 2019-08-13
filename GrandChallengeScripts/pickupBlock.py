@@ -47,6 +47,7 @@ def findAndPickUpBlock(grip, motors, sodar, picTaker, maskBoundsRGB, maxAttempts
 	# Close the Gripper.
 	grip.closeGrip()
 	
+	print("Preparing to send email.")
 	emailStr = "Coordinates are: " + str(motors.pos)
 	email01.main(picTaker, emailStr)
 	#time.sleep(1)
@@ -75,8 +76,11 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 		# Mask out gripper
 		# Mask out 375 - 480 in the Y
 		# Mask out 0-205 and 500 to 640
-		test_im[375:480][0:205] = 0
-		test_im[375:480][500:640] = 0
+		for i in range(375, 480):
+			test_im[i][0:140] = 0
+			test_im[i][500:640] = 0
+		for i in range(440, 480):
+			test_im[i][140:205] = 0
 		orig_im = test_im
 		
 		#cv2.imshow("Vision", orig_im)
@@ -105,12 +109,14 @@ def centerOnBlock(maxAttempts, maskBoundsRGB, picTaker, motors):
 							colorUsed = color
 					#input("Continue?")
 			#input("Continue? ")
+		orig_im = None
+		test_im = None
 		if COI:
 			# COI is the center we care about as it is the closest block.
 			#Compute the angle needed to turn given the distance from center
 			pixelDist = abs(COI[0] - CenterIm[0])
 			# Rotate in Small increments until the block is centered in the image
-			bufX = 4# Allow X Pixels of error
+			bufX = 7# Allow X Pixels of error
 			# Block is to the Left of Center Screen
 			# Use different turning amounts so it doesn't get stuck going back
 			# and forth
