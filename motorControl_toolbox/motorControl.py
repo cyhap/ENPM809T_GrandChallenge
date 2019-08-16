@@ -23,8 +23,8 @@ class motorControl:
 		self.frontLeftEnc = frontLeftEnc
 		self.backRightEnc = backRightEnc
 		self.wheelDiameter_m = 0.065
-		self.distBetweenWheelsL_m = 0.239 #0.24 orig
-		self.distBetweenWheelsR_m = 0.247 #0.24 orig
+		self.distBetweenWheelsL_m = 0.235 #0.24 orig
+		self.distBetweenWheelsR_m = 0.24 #0.24 orig
 		self.Mode = 1 #TODO Add Enumerations 0 is use time 1 is use Encoder Ticks
 		self.PathCommands = []
 		self.countsBR = []
@@ -174,12 +174,17 @@ class motorControl:
 		# 1 Second will go through this loop ~4250 times
 		lastTime = time.time()
 		buff = 0
-		gain = 350#750
+		gain = 900#350#750
 		minCheckTime = 0.007
 		#pwm_R.start(dutyCyclePcnt)
 		#pwm_L.start(dutyCyclePcnt)
-		#print("About to start motor for loop")
+		print("About to start motor for loop")
+		lastIterTime = time.time()
 		for i in range(0,1000000):
+			#iterTime = time.time()
+			#iterTimeElapsed = iterTime - lastIterTime
+			#lastIterTime = iterTime
+			#print("Time Per Iter: ", iterTimeElapsed)
 			if i == 0:
 				pwm_R.start(dutyCyclePcnt)
 				pwm_L.start(dutyCyclePcnt)
@@ -202,14 +207,17 @@ class motorControl:
 
 			#if stateChange:
 			timeInterval = time.time() - lastTime
-			#if (timeInterval > 1):
-			#	print("This shouldnt happen")
-			#	print("Sleeping for a second")
-			#	time.sleep(1)
 			if (timeInterval > minCheckTime):
 				dBR_dt = (counterBR - lastUpdateBR) / timeInterval
 				dFL_dt = (counterFL - lastUpdateFL) / timeInterval
 				"""
+				if (dBR_dt == 0 and dFL_dt == 0 and i > 0):
+					print("This shouldn't happen. Spds Stopped")
+					print("Trying start again.")
+					pwm_R.start(dutyCyclePcnt)
+					pwm_L.start(dutyCyclePcnt)
+
+				
 				print("counterBR", counterBR)
 				print("counterFL", counterFL)
 				print("lastUpdateBR", lastUpdateBR)
@@ -251,8 +259,11 @@ class motorControl:
 					if dc_R > dc_L:
 						dc_L = dc_L*dutyCyclePcnt/dc_R
 						dc_R = dutyCyclePcnt
-					else:
+					elif dc_R < dc_L:
 						dc_R = dc_R*dutyCyclePcnt/dc_L
+						dc_L = dutyCyclePcnt
+					else:
+						dc_R = dutyCyclePcnt
 						dc_L = dutyCyclePcnt
 					gainR = 0
 					gainL = 0
@@ -307,7 +318,7 @@ class motorControl:
 				print("Counter BR: ", counterBR)
 				print("Counter FL: ", counterFL)
 				print("Num ticks: " , numTicks)
-				#print("Break Idx: ", breakIdx)
+				print("Break Idx: ", breakIdx)
 				break
 				
 		pwm_R.stop()

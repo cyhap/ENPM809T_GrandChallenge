@@ -36,7 +36,8 @@ class sodar:
 			#Ensure the pin is low
 			gpio.output(self.trigPin, False)
 			time.sleep(0.1)
-
+			#print("Long Before first while in distance calc")
+			
 			#Generate trigger (or active) pulse
 			gpio.output(self.trigPin, True)
 			time.sleep(0.00001)
@@ -45,6 +46,7 @@ class sodar:
 			#Wait for Generate echo time signal
 			while gpio.input(self.echoPin) ==  False:
 				pulse_start = time.time()
+			#print("Before second while in distance calc")
 			while gpio.input(self.echoPin) == True:
 				pulse_end = time.time()
 

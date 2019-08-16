@@ -14,6 +14,7 @@ import math
 import time
 #For tracing segmentation faults
 import faulthandler; faulthandler.enable()
+import pickle
 
 def computeDesOrient(currPos, desPos):
 	xDif = desPos[0] - currPos[0]
@@ -22,10 +23,14 @@ def computeDesOrient(currPos, desPos):
 	desiredOrient = math.degrees(math.atan2(yDif, xDif))
 	return desiredOrient
 		
+# Recover position and orientation
+fn = "selectedMoves_20190813-200118.pkl"
+trajData = pickle.load(open(fn, "rb"))
+position, orientation = trajData[-1]
 # Starting at 1ft by 1 ft
 oneFt = retrieval.convertIn2Meters(12)
-startingPos = (oneFt, oneFt)
-startingOrient = 0 #Deg
+startingPos = position
+startingOrient = orientation #Deg
 
 #Drop Off Zone Center at 2ft * 10ft
 #dropOffPos =  (1*oneFt, 3*oneFt)
@@ -40,6 +45,7 @@ myMotor= motors.motorControl(initPosOrient
 mySodar = sodar.sodar()
 
 maskBoundsRGB  = {}
+maskBoundsRGB_orig  = {}
 
 #  Red Block HSV Mask
 minH = 0#0 
@@ -50,7 +56,8 @@ maxS = 255#216
 maxV = 255#155
 minHSV = (minH, minS, minV)
 maxHSV = (maxH, maxS, maxV)
-maskBoundsRGB['r'] = (minHSV, maxHSV)
+#maskBoundsRGB['r'] = (minHSV, maxHSV)
+maskBoundsRGB_orig['r'] = (minHSV, maxHSV)
 
 #  Green Block HSV Mask
 minH = 30#43 
@@ -62,6 +69,7 @@ maxV = 255#156
 minHSV = (minH, minS, minV)
 maxHSV = (maxH, maxS, maxV)
 maskBoundsRGB['g'] = (minHSV, maxHSV)
+maskBoundsRGB_orig['g'] = (minHSV, maxHSV)
 
 #  Blue Block HSV Mask
 minH = 95
@@ -72,9 +80,10 @@ maxS = 229
 maxV = 211
 minHSV = (minH, minS, minV)
 maxHSV = (maxH, maxS, maxV)
-maskBoundsRGB['b'] = (minHSV, maxHSV)
+#maskBoundsRGB['b'] = (minHSV, maxHSV)
+maskBoundsRGB_orig['b'] = (minHSV, maxHSV)
 
-maskBoundsRGB_orig = maskBoundsRGB.copy()
+#maskBoundsRGB_orig = maskBoundsRGB.copy()
 
 #print("These arre the mask Bounds2", maskBoundsRGB.keys())
 
@@ -82,11 +91,11 @@ myPicTaker = picTaker.camera()
 
 #Explore Algorithm
 #corners = [[0,0], [12*oneFt, 0], [12*oneFt, 12*oneFt], [0, 12*oneFt]]
-corners = [[12*oneFt, 0], [12*oneFt, 12*oneFt]]
+corners = [[12*oneFt, 0], [12*oneFt, 12*oneFt],[12*oneFt, 0], [0,0]]
 cornerIdx = 1
 blocksFound = {}
 numBlocksFound = 0
-for i in range(0,4):
+for i in range(0,5):
 	while maskBoundsRGB:
 		#print("These are the mask Bounds", maskBoundsRGB.keys())
 		# Check t see that its outside the construction zone
@@ -115,9 +124,9 @@ for i in range(0,4):
 			numBlocksFound += 1
 			# Remove Block that was found
 			blocksFound[color] = maskBoundsRGB.pop(color)
-			#if (numBlocksFound > 4):
-			#	print("Does this help? Sleeping for 5 Seconds")
-			#	time.sleep(5)
+			if (numBlocksFound > 4):
+				print("Does this help? Sleeping for 5 Seconds")
+				time.sleep(5)
 		else:
 			cornerIdx = (cornerIdx + 1) % len(corners)
 		

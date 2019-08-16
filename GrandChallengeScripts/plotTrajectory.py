@@ -12,7 +12,8 @@ root = Tk()
 root.filename = filedialog.askopenfilename(initialdir = currDir, title = "Select File", filetypes = ("all files", "*.*"))
 print(root.filename)
 """
-fn = "selectedMoves_20190812-181135.pkl"
+fn = "selectedMoves_20190813-212304.pkl"
+#fn = "selectedMoves_20190813-182035.pkl"
 trajData = pickle.load(open(fn, "rb"))
 allXPos = np.zeros((len(trajData), 1))
 allYPos = np.zeros((len(trajData), 1))
