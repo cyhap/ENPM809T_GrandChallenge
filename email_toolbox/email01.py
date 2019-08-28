@@ -18,8 +18,8 @@ def main(aPicTaker, aMsg):
 	aPicTaker.saveIm(pic_time+'.jpg')
 	print("Image Saved")
 	#Email information
-	smtpUser = "cyhap.rpi@gmail.com"
-	smtpPass = "raspberryENPM809T"
+	smtpUser = "cyhap.rpi@gmail.com" # ADD EMAIL ADDRESS
+	smtpPass = #ADD PASSWORD
 
 	#Destination Email Information
 
